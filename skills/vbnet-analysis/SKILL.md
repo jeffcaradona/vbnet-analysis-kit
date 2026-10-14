@@ -1,19 +1,34 @@
 ---
 name: vbnet-analysis
-description: 'Inspect VB.NET source structure locally using Roslyn. Use for outlining classes, modules, methods and properties; inspecting a selected declaration; or listing invocation expressions within a Sub, Function or constructor. Also use when investigating VB.NET callers to distinguish syntax candidates from resolved references. Not for C#, SQL parsing, formatting, compilation, or semantic reference resolution.'
+description: 'Inspect VB.NET declarations and invocation syntax using a local Roslyn tool. Use to outline classes/modules/methods/properties, inspect a selected declaration, or investigate possible calls in VB.NET, including legacy report tracing. Distinguish syntax candidates from resolved references. Not for SQL parsing, C# analysis, compilation, or semantic reference resolution.'
 ---
 
 # VB.NET syntax analysis
 
-1. Find candidate `.vb` files with `rg` or `fd`; do not scan a whole repository with Roslyn.
-2. Read [command recipes](references/commands.md).
-3. Invoke `scripts/Invoke-VbAnalysis.ps1` through PowerShell 7. It calls the published local tool without restore or build.
-4. Use `outline`, then select a declaration start line for `inspect` or `calls`.
-5. Read `analysis`, `parseErrorCount`, `truncated`, `textTruncated`, and `limitations` before drawing conclusions. Report paths and 1-based source ranges.
-6. Use bounded `rg` and source reads for follow-up evidence.
+## Select the workflow
 
-The tool has no model, API calls, or network dependencies at runtime. It does not execute inspected source or load project files. A successful result proves syntax was observed, not semantic identity.
+**Standalone:** locate candidate `.vb` files with `rg` or `fd`, then use the installed launcher described in [commands](references/commands.md). It runs offline after installation.
 
-`calls` lists invocation syntax, which may be array/default-property access. It includes nested lambdas, excludes bare member accesses and constructors invoked with `New`, and cannot resolve overloads, late binding, reflection, or runtime dispatch. Do not call it a complete call graph.
+**Modernization Evidence Harness investigation:** use server-exposed tools, approved repository aliases, and evidence returned by the harness. If a Roslyn MCP operation exists, follow its actual schema. If absent, use existing search/excerpt tools and identify Roslyn integration as pending. The proposal shipped with this kit does not install or register an MCP tool.
 
-Installation is user-run from the accompanying kit. If missing, stop tool execution and report the missing installation; do not claim the tool ran or silently switch to an improvised Roslyn implementation.
+Do not silently substitute local terminal analysis for harness collection. Supplementary standalone observations must be explicitly requested and labeled uncataloged; they cannot satisfy artifact references.
+
+## Standalone procedure
+
+1. Locate selected files; do not parse an entire repository by default.
+2. Invoke `scripts/Invoke-VbAnalysis.ps1` through PowerShell 7, beginning with `outline`.
+3. Select the exact declaration start line for `inspect` or `calls`.
+4. Inspect `analysis`, `parseErrorCount`, `truncated`, `textTruncated`, and `limitations` before drawing conclusions.
+5. Report paths and 1-based ranges. Use bounded text search and source reads for follow-up evidence.
+
+The current outline has no pagination. If it truncates, state the gap and use bounded text discovery; do not claim all declarations were examined. Pagination is proposed for harness integration, not implemented here.
+
+## Interpretation boundaries
+
+An invocation expression is syntax evidence, not a resolved method call. It can be array/default-property access, includes invocations inside nested lambdas, and excludes bare member access and object creation. No solution, reference assemblies, or semantic model are loaded. Conditional branches reflect default parser symbols, not necessarily the project's build configuration.
+
+The current tool does not extract argument mappings, assignments, SQL relationships, or complete report execution paths. Mark those as follow-up evidence needs. Parse failures and unsupported encodings must remain visible.
+
+## Installation
+
+The user runs the kit installer, which builds and smoke-tests the parser before installing customizations. If the launcher or parser is missing, report that fact; do not improvise an alternative parser or claim an invocation succeeded.

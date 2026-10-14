@@ -1,17 +1,25 @@
 ---
 applyTo: "**/*.vb"
-description: "Use local Roslyn syntax analysis for VB.NET declarations and call expressions."
+description: "Use bounded local Roslyn analysis for VB.NET; preserve the evidence boundary when working through the Modernization Evidence Harness."
 ---
 
-# VB.NET analysis with local Roslyn
+# VB.NET analysis
 
-For VB.NET structure, load `~/.copilot/skills/vbnet-analysis/SKILL.md`.
-Use `rg` to select candidate files, then the skill's installed Roslyn launcher for declarations, bounded source inspection, or invocation expressions. Return file paths and line ranges as evidence.
+Load `~/.copilot/skills/vbnet-analysis/SKILL.md` for VB.NET declaration structure, bounded declaration inspection, or invocation-expression inspection.
 
-- Do not assume installation succeeded: if the launcher or tool is missing, report it and ask the user to run the package installer. Do not install dependencies or create an alternative parser during an investigation.
-- Start with `outline`; use its declaration start line for `inspect` or `calls`.
-- This tool performs **syntax analysis only**. An invocation expression is not a confirmed method call, reference, overload, caller, or runtime dependency. Array and default-property access can have the same syntax.
-- Report parse errors, truncation, and relevant conditional-compilation limitations. Never interpret incomplete output as an exhaustive finding.
-- Do not load solutions, build the investigated repository, modify source, or execute the inspected code for these operations.
-- Use ordinary text search for SQL embedded in VB strings. Roslyn does not resolve stored-procedure definitions or dynamically generated SQL.
-- Read small source ranges only when structured output cannot answer the question. Keep output bounded.
+## Choose the execution path
+
+- For standalone source exploration, use the skill's installed local Roslyn launcher. First locate candidate files with `rg` or `fd`.
+- For an investigation governed by the Modernization Evidence Harness, use its available MCP tools and repository aliases. Use Roslyn through that server only when the integration is actually implemented and exposed. Do not invent an `analyze_vb_source` tool.
+- If the server does not expose Roslyn analysis, continue with its existing inventory, search, and excerpt tools and report the missing capability. Do not bypass the server with direct filesystem analysis and present the result as harness evidence.
+- If the user explicitly requests supplementary standalone analysis, label it as uncataloged working-tree observations. It has no harness evidence ID, snapshot guarantee, or manifest validation status.
+
+## Interpret results honestly
+
+- Start with `outline`; use its returned declaration start line for `inspect` or `calls`.
+- The current tool is syntax-only. Invocation syntax can represent array/default-property access. Do not call it a resolved symbol, confirmed caller, complete call graph, or proof of runtime behavior.
+- Report parse errors, truncation, and relevant preprocessor/encoding limitations. A missing result is not proof of absence when coverage is incomplete.
+- Cite paths and 1-based source ranges. A harness claim must use evidence IDs actually returned by that harness; never manufacture IDs or approval status.
+- Use text search for SQL embedded in VB strings. This parser does not resolve SQL definitions, dynamic SQL, reflection, or project dependencies.
+- Do not build or execute inspected repositories, modify source, or install dependencies during analysis. If the standalone tool is missing, report it and refer the user to the kit installer.
+- Keep outputs bounded; read small source ranges only when structured observations do not answer the question.

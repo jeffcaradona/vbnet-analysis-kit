@@ -3,12 +3,25 @@
 A read-only Roslyn CLI with a Copilot skill and a narrowly scoped instruction file.
 Default instruction destination: `C:\Users\jeffc\.copilot\instructions\vbnet-analysis.instructions.md`.
 
+## Deliverables
+
+| Delivery | Repository path | Destination / use |
+|---|---|---|
+| Personal instructions | [vbnet-analysis.instructions.md](instructions/vbnet-analysis.instructions.md) | `~/.copilot/instructions/` |
+| Personal skill | [vbnet-analysis](skills/vbnet-analysis/SKILL.md) and its companion files | `~/.copilot/skills/vbnet-analysis/` |
+| Downstream integration proposal | [roslyn-harness-integration.proposal.md](roslyn-harness-integration.proposal.md) | Review in the downstream Modernization Evidence Harness fork |
+
+The personal workflow uses the existing standalone parser. The proposal specifies
+future MCP integration; it does not add a server or implement new parser commands.
+For harness-governed investigations, use actual server tools and cataloged
+evidence. Standalone output must not be represented as harness evidence.
+
 ## Install
 
 Prerequisites: Windows, PowerShell 7, .NET 8 SDK (including its runtime), and NuGet
 access for the initial package restore. Analysis runs locally/offline after install.
 
-Extract this ZIP into a normal working folder. Open PowerShell 7 in that folder:
+Clone this repository (or extract its ZIP). Open PowerShell 7 in the repository root:
 
 ```powershell
 .\Install.ps1
@@ -33,6 +46,21 @@ Agent Customizations. Automatic discovery depends on your VS Code/Copilot
 version and session harness; filesystem placement alone is not a discovery test.
 The instruction file applies to `**/*.vb`; the skill description also supports
 VB.NET investigation requests before any source file is attached.
+
+## Update an existing personal installation
+
+The installer deliberately refuses existing destinations. If the parser is already
+installed and you are applying only these instructions/skill updates, back up and
+replace the two Markdown files below from the repository. Keep the existing
+launcher, command reference and published tool:
+
+- `instructions/vbnet-analysis.instructions.md` → `C:/Users/jeffc/.copilot/instructions/vbnet-analysis.instructions.md`
+- `skills/vbnet-analysis/SKILL.md` → `C:/Users/jeffc/.copilot/skills/vbnet-analysis/SKILL.md`
+
+Review any personal edits before replacement. The proposal stays in this repository;
+do not install it as an automatically loaded instruction file. Start a new session
+and verify discovery. For a different home directory, pass `-CopilotRoot` to the
+installer and adjust the example paths accordingly.
 
 ## First use
 
