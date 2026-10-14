@@ -159,6 +159,7 @@ A matching method name in two files does not establish a cross-repository call e
 ## Changes to the standalone kit
 
 - Split CLI handling from a reusable `VbSyntaxAnalyzer` and operation-specific extractors.
+- Add the report-relationship extractors listed under "Report relationships required in the MVP": object creation, member assignments, nearest `With` receivers, `Handles` clauses, and syntactic positional/named argument mapping with literal values. The 0.1.0 `calls` command excludes object creation and assignments, so it cannot produce these observations today.
 - Add explicit request/response types and JSON-over-stdin mode while preserving file-based manual commands.
 - Add paging or targeted selection so declarations beyond the first result cap are reachable. Bind continuation state to input hash, operation and parser options; reject stale continuation.
 - Emit stable ordering, effective options, diagnostic completeness, and per-field truncation. Never silently truncate declaration identity fields used for selection.
@@ -178,10 +179,9 @@ Add parsing caches only after measuring repeated work. Cache keys must include s
 
 ## Validation and acceptance
 
-Prerequisite regressions must cover a late match beyond 16 KiB, 601+ matches across multiple files, file-oriented pagination, unknown totals on early termination, a Windows path set exceeding the single-command budget, non-ASCII Windows-1252 literals, BOM Unicode input, and restart/reload reference validation. Do not mark the Windows case validated from Linux tests alone.
-
-
 Use synthetic fixtures only; private source is not required in upstream tests.
+
+Prerequisite regressions must cover a late match beyond 16 KiB, 601+ matches across multiple files, file-oriented pagination, unknown totals on early termination, a Windows path set exceeding the single-command budget, non-ASCII Windows-1252 literals, BOM Unicode input, and restart/reload reference validation. Do not mark the Windows case validated from Linux tests alone.
 
 MVP tests must demonstrate:
 
