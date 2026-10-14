@@ -3,7 +3,7 @@
 Run in PowerShell 7. Default installation:
 
 ```powershell
-$vbTool = 'C:/Users/jeffc/.copilot/skills/vbnet-analysis/scripts/Invoke-VbAnalysis.ps1'
+$vbTool = Join-Path $HOME '.copilot/skills/vbnet-analysis/scripts/Invoke-VbAnalysis.ps1'
 & $vbTool -Command outline -File './Reports/ReportRunner.vb' -Limit 30
 # Replace 42 with the declaration startLine returned by outline.
 & $vbTool -Command inspect -File './Reports/ReportRunner.vb' -Line 42 -MaxChars 4000
@@ -12,7 +12,8 @@ $vbTool = 'C:/Users/jeffc/.copilot/skills/vbnet-analysis/scripts/Invoke-VbAnalys
 
 Output is one compact JSON object: schema/tool version, command, file, analysis,
 total, returned, truncated, parseErrorCount, diagnostics (first ten), limitations,
-and results. Paths are absolute with forward slashes. Ranges are 1-based;
+and results. Paths are absolute with forward slashes; convert them to
+repository-relative paths before citing them. Ranges are 1-based;
 end positions are exclusive. `inspect` may truncate text mid-line and marks it.
 
 Exit codes: 0 parsed successfully; 2 syntax errors (partial evidence emitted);
@@ -33,5 +34,6 @@ narrow the investigation rather than claiming completeness.
 Parsing uses Roslyn 4.14.0, default language/preprocessor options, UTF-8 or
 BOM-detected UTF-16/UTF-32. Legacy ANSI files without a BOM are not supported;
 make an explicitly encoded temporary copy if needed, preserving original source.
+Cite results against the original repository-relative path and commit, not the copy.
 Default preprocessor symbols may exclude branches used by the actual project.
 No project build settings, references, or semantic model are loaded.

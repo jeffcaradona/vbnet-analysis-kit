@@ -1,7 +1,7 @@
 # VB.NET analysis kit — 0.1.0
 
 A read-only Roslyn CLI with a Copilot skill and a narrowly scoped instruction file.
-Default instruction destination: `C:\Users\jeffc\.copilot\instructions\vbnet-analysis.instructions.md`.
+Default instruction destination: `$HOME/.copilot/instructions/vbnet-analysis.instructions.md`.
 
 ## Deliverables
 
@@ -51,11 +51,13 @@ VB.NET investigation requests before any source file is attached.
 
 The installer deliberately refuses existing destinations. If the parser is already
 installed and you are applying only these instructions/skill updates, back up and
-replace the two Markdown files below from the repository. Keep the existing
-launcher, command reference and published tool:
+replace or add the Markdown files below from the repository. Keep the existing
+launcher and published tool:
 
-- `instructions/vbnet-analysis.instructions.md` → `C:/Users/jeffc/.copilot/instructions/vbnet-analysis.instructions.md`
-- `skills/vbnet-analysis/SKILL.md` → `C:/Users/jeffc/.copilot/skills/vbnet-analysis/SKILL.md`
+- `instructions/vbnet-analysis.instructions.md` → `$HOME/.copilot/instructions/vbnet-analysis.instructions.md`
+- `skills/vbnet-analysis/SKILL.md` → `$HOME/.copilot/skills/vbnet-analysis/SKILL.md`
+- `skills/vbnet-analysis/references/commands.md` → `$HOME/.copilot/skills/vbnet-analysis/references/commands.md`
+- `skills/vbnet-analysis/references/report-tracing.md` → `$HOME/.copilot/skills/vbnet-analysis/references/report-tracing.md` (new)
 
 Review any personal edits before replacement. The proposal stays in this repository;
 do not install it as an automatically loaded instruction file. Start a new session
@@ -65,12 +67,14 @@ installer and adjust the example paths accordingly.
 ## First use
 
 ```powershell
-$vbTool = 'C:/Users/jeffc/.copilot/skills/vbnet-analysis/scripts/Invoke-VbAnalysis.ps1'
+$vbTool = Join-Path $HOME '.copilot/skills/vbnet-analysis/scripts/Invoke-VbAnalysis.ps1'
 & $vbTool -Command outline -File 'C:/path/to/ReportRunner.vb'
 ```
 
 Use a returned declaration startLine for `inspect` or `calls`, as documented in
-`skills/vbnet-analysis/references/commands.md`. No global `roslyn` executable is
+`skills/vbnet-analysis/references/commands.md`. For "which files generate report X" questions, the skill follows
+`skills/vbnet-analysis/references/report-tracing.md`: a fixed search order, a
+per-repository coverage ledger and a required answer format. No global `roslyn` executable is
 assumed. Errors are JSON on stderr. Results are compact JSON on stdout.
 
 ## Scope and limits

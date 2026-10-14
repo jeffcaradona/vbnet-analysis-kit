@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 [CmdletBinding()]
-param([string]$CopilotRoot = 'C:\Users\jeffc\.copilot')
+param([string]$CopilotRoot = (Join-Path $HOME '.copilot'))
 $ErrorActionPreference = 'Stop'
 Get-Command dotnet -ErrorAction Stop | Out-Null
 $runtimes = & dotnet --list-runtimes
