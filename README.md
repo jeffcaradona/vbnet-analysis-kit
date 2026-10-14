@@ -90,11 +90,13 @@ the latest versions. The wrapper is C# code analyzing VB.NET source.
 
 ## Validation status
 
-Source and package layout reviewed; project XML and ZIP contents checked in the
-generation environment. Compilation and runtime tests were NOT executed there:
-the .NET SDK and PowerShell were unavailable. The installer runs the smoke tests
-locally before copying Copilot customizations. Treat this as a source kit pending
-that local build, not a prevalidated binary release.
+Built and smoke-tested on Linux (Ubuntu 24.04, .NET SDK 8.0.131, PowerShell 7.4.6):
+`dotnet publish`, all smoke tests, an end-to-end `Install.ps1` run into a scratch
+home directory, the installed launcher, and the installer's refusal to overwrite.
+Windows has NOT been validated, including path handling, execution policy and
+Copilot discovery. The installer runs the smoke tests locally before copying
+Copilot customizations. Treat this as a source kit pending a Windows run, not a
+prevalidated binary release.
 
 Smoke tests cover declaration discovery, exclusion of fake calls in comments
 and strings, bounded source output, result truncation, exit code 2 with partial
