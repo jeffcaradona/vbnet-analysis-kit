@@ -15,15 +15,15 @@ description: 'Inspect VB.NET declarations and invocation syntax using a local Ro
 
 Do not silently substitute local terminal analysis for harness collection. Supplementary standalone observations must be explicitly requested and labeled uncataloged; they cannot satisfy artifact references.
 
-Current harness search and excerpt tools have known coverage limits. A search returning exactly its result cap may be truncated, and a range-read failure on a large file is a tool limit, not proof of absence. See report tracing, section 3.
+Upstream harness `baa4158` has known search-cap and late-line read defects. Check whether the downstream harness still has them, and treat a capped search or a failed range read as a coverage gap, not proof of absence. See report tracing, section 3.
 
 ## Standalone procedure
 
-1. Record each repository's commit and dirty state (report tracing, section 1).
+1. Record each repository's commit as context, and the content identity of each cited file (report tracing, section 1).
 2. Locate selected files; do not parse an entire repository by default.
 3. Invoke `scripts/Invoke-VbAnalysis.ps1` through PowerShell 7, beginning with `outline`.
 4. Select the exact declaration start line for `inspect` or `calls`.
-5. Inspect `analysis`, `parseErrorCount`, `truncated`, `textTruncated`, and `limitations` before drawing conclusions.
+5. Inspect `analysis`, `parseErrorCount`, `truncated`, `textTruncated`, and `limitations` before drawing conclusions. A truncated `inspect` did not show the whole declaration.
 6. Report repository-relative paths and 1-based ranges. Use bounded text search and source reads for follow-up evidence.
 
 The current outline has no pagination. If it truncates, state the gap and use bounded text discovery; do not claim all declarations were examined. Pagination is proposed for harness integration, not implemented here.
@@ -32,9 +32,9 @@ The current outline has no pagination. If it truncates, state the gap and use bo
 
 An invocation expression is syntax evidence, not a resolved method call. It can be array/default-property access, includes invocations inside nested lambdas, and excludes bare member access and object creation. No solution, reference assemblies, or semantic model are loaded. Conditional branches reflect default parser symbols, not necessarily the project's build configuration.
 
-The current tool does not extract object creation, argument mappings, assignments, SQL relationships, or complete report execution paths. Find those with text search, label them lexical, and mark resolved links as follow-up evidence needs. Never merge same-named declarations across files or repositories into one target.
+The current tool does not extract object creation, argument mappings, assignments, SQL relationships, or complete report execution paths. Find those with text search, label them lexical, and keep the relationships they suggest as candidates until separate evidence confirms them. Never merge same-named declarations across files or repositories into one target.
 
-Parse failures and unsupported encodings must remain visible. If a file is analyzed through a re-encoded temporary copy, report findings against the original repository-relative path and its commit, never the temporary path. For non-ASCII search text in Windows-1252 files, use `rg -E windows-1252`.
+Parse failures and unsupported encodings must remain visible. If a file is analyzed through a re-encoded temporary copy, follow the re-encoding rules in report tracing, section 1: cite the original path, never the temporary one. For non-ASCII search text in Windows-1252 files, use `rg -E windows-1252`.
 
 ## Installation
 

@@ -34,6 +34,6 @@ narrow the investigation rather than claiming completeness.
 Parsing uses Roslyn 4.14.0, default language/preprocessor options, UTF-8 or
 BOM-detected UTF-16/UTF-32. Legacy ANSI files without a BOM are not supported;
 make an explicitly encoded temporary copy if needed, preserving original source.
-Cite results against the original repository-relative path and commit, not the copy.
+Record the conversion and cite the original path, as described in report-tracing.md, section 1.
 Default preprocessor symbols may exclude branches used by the actual project.
 No project build settings, references, or semantic model are loaded.

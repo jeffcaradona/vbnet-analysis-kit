@@ -97,7 +97,11 @@ locally before copying Copilot customizations. Treat this as a source kit pendin
 that local build, not a prevalidated binary release.
 
 Smoke tests cover declaration discovery, exclusion of fake calls in comments
-and strings, bounded source output, and result truncation.
+and strings, bounded source output, result truncation, exit code 2 with partial
+JSON and diagnostics on syntax errors, exit code 1 with a JSON error for invalid
+BOM-less UTF-8, and successful parsing of UTF-8 and UTF-16 input with a BOM.
+The parser tests need only .NET and PowerShell 7; Windows-specific behavior still
+needs validation on Windows.
 
 ## Remove
 
