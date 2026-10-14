@@ -23,19 +23,25 @@ analyzed:
 ```powershell
 (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash
 git -C $repo rev-parse "HEAD:$relativePath"   # committed blob, if tracked
-git -C $repo hash-object -- $relativePath     # working-tree content as Git would store it
+git -C $repo hash-object --no-filters -- $relativePath # raw working-tree bytes
 ```
 
 - If the two Git hashes match, the analyzed content matches the committed blob; cite
   `repo@commit:path` with the blob hash.
 - Otherwise, or if the file is untracked, label the finding **working-tree content** and
   cite the SHA-256 instead. Do not attribute it to the commit.
-- `hash-object` without `-w` writes nothing.
+- `--no-filters` prevents clean filters and end-of-line normalization from changing
+  the bytes being hashed. `hash-object` without `-w` writes nothing.
+- Retain the raw SHA-256 even when the Git hashes match.
 
 **Re-encoded copies:** if a file must be converted (for example, Windows-1252 to UTF-8)
 before parsing, record the original encoding, the conversion performed, and the
-SHA-256 of both the original and the copy. Confirm that the copy has the same line
-count as the original; if it does not, line numbers from the copy cannot be cited.
+SHA-256 of both the original and the copy. Perform an encoding-only conversion:
+strictly decode each file using its recorded encoding and verify that the decoded
+text is identical, including every line break. Do not normalize newlines, replace
+undecodable characters, or otherwise edit the text. Equal line counts alone do not
+establish preserved line mapping. If decoded-text equality cannot be verified,
+do not cite the copy's line numbers against the original; record the limitation.
 Always cite the original path, never the copy's.
 
 In a harness investigation, use the snapshot and evidence identity the harness reports
