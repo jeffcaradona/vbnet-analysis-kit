@@ -1,15 +1,15 @@
 # Proposal: Roslyn syntax evidence in the downstream Modernization Evidence Harness
 
-Status: proposed; no downstream changes made
+Status: proposed, revised after review; no downstream changes made
 Date: 2026-10-14
 Audience: downstream harness maintainers
-Scope: read-only VB.NET evidence collection through the existing MCP server
+Scope: read-only legacy report tracing through VB.NET syntax and report-artifact evidence
 
 ## Decision requested
 
 Approve a small Roslyn adapter behind the existing Node.js MCP server. Reuse the standalone parser as a starting point, and make the harness own source selection, snapshot identity, execution limits, redaction, evidence recording, and artifact validation.
 
-Keep personal Copilot instructions and skills as a separate delivery surface. They guide tool usage but do not enforce evidence integrity. The standalone kit is useful for local exploration; it must not become an alternative evidence path that bypasses the harness.
+Keep personal Copilot instructions and skills as a separate delivery surface in this repository. Do not ship them as required components of the downstream harness. They guide tool usage but do not enforce evidence integrity. The standalone kit is useful for local exploration; it must not become an alternative evidence path that bypasses the harness.
 
 ## Problem and intended outcome
 
@@ -17,7 +17,7 @@ Investigations span up to 15 approved repositories to explain how legacy reports
 
 Roslyn can deterministically identify declarations and invocation expressions and return their source spans. This reduces manual source interpretation without claiming that syntax proves resolved calls, runtime behavior, or business correctness. The model chooses investigative questions and explains findings; tools establish reproducible observations.
 
-The initial outcome is narrow: find a report identifier with existing search, inspect its enclosing VB.NET structure through MCP, and cite cataloged syntax observations alongside direct excerpts.
+The initial useful outcome is report-centered: given a report identifier, identify candidate entry points, report classes/files, procedure names, and parameter expressions across approved repositories; return typed relationships with citations and unresolved targets. An outline and invocation list alone is a parser prototype, not this report-tracing MVP.
 
 ## Grounding and downstream reconciliation
 
@@ -35,20 +35,92 @@ Observed upstream:
 
 Before implementation, map these responsibilities to their downstream equivalents and identify what already exists, especially durable state, multi-repository orchestration, and additional report-tracing tools. Preserve downstream contracts; do not replace working implementations merely to match upstream paths.
 
+## Review disposition and prerequisite fixes
+
+The review correctly identifies that the first proposal prioritized general syntax operations over the relationships needed to answer “which files generate report X.” Move the report-relevant extractors and artifact observations into the MVP. The source kit remains a prototype and does not gain those capabilities merely because this proposal names them.
+
+The late-excerpt and silent-search-cap failures were independently reproduced against upstream `baa4158` with synthetic committed files on 2026-10-14:
+
+- 601 matching lines yielded 20 evidence items, no top-level completeness flag, and no item marked truncated.
+- Search found a procedure name at line 1803. Reading from line 1802 failed with `E_LINE_RANGE_INVALID`: the reader had sliced a 16 KiB prefix before selecting lines. The reported prefix line count varies with fixture line length; it is not the full file's line count.
+- The Windows command-line limit is a code-inspection risk, not a reproduced Windows failure.
+- UTF-8 assumptions and the in-memory catalog are established by source inspection.
+
+Land and validate the following downstream prerequisites before accepting or enabling the Roslyn MCP integration. Independent parser prototyping need not stop, but it must not obscure these release gates.
+
+| Prerequisite | Required behavior |
+|---|---|
+| Snapshot-based range reads | Read the requested lines from the pinned blob, then bound the returned excerpt. Stream to the range or decode the full file within a separate supported input limit; never mistake a prefix for the full file. If the source exceeds a processing limit, report that limit explicitly. |
+| Honest search coverage | Return scope, scanned/skipped/failed files, page/return limits, and completeness. Provide a file-oriented result mode for “which files” questions so one file's matching lines cannot consume all visible coverage. |
+| Counts with known meaning | Distinguish matching files, matching lines, and occurrences. Report an exact total only after scanning the entire declared scope; otherwise return an observed lower bound and `totalKnown: false`. A cap or timeout must not silently imply absence. |
+| Windows-safe search execution | Do not place every committed path in one command line. Implement bounded argument batches with deterministic aggregation, or search an immutable approved snapshot staging area. Preserve tracked-only/sensitive-path policy, pagination and coverage across batches. |
+| Encoding support | Support configured Windows-1252 as well as strict UTF-8 and BOM-declared Unicode. Use one decoding policy for search, excerpts, XML and Roslyn input, with applicable XML declarations handled explicitly. Preserve original blob hashes and record the effective decoding/transcoding choice. |
+| Durable investigations | Persist snapshots, evidence and analysis provenance; restart/reload and revalidate manifests without inventing past catalog entries. Reuse the downstream solution if already present. |
+
+Do not implement the path-list fix as `filenames | rg ...`: ripgrep searches stdin as content. Its `-f` option reads patterns, not filenames. Do not assume an unverified `--files-from` option exists. Bounded batches or controlled snapshot staging are concrete alternatives. If stdin is used to search one blob's contents, the harness must supply and retain that blob's identity separately.
+
+Windows-1252 is an explicit supported policy, not a universal “ANSI” detector or silent fallback for corrupt UTF-8. Specify precedence (BOM, applicable XML declaration, configured file/repository encoding, default), reject conflicts/invalid data, and test non-ASCII literals and offsets.
+
 ## Milestones
 
 | Stage | Scope | Exit criterion |
 |---|---|---|
 | Existing harness Milestone 1 | Controlled collection, snapshots, evidence IDs, reference validation | Preserve its guarantees and regression tests |
-| Roslyn integration MVP | One file, syntax only; outline, declaration inspection, invocation expressions | MCP returns bounded, attributable syntax evidence from the pinned source |
-| Report-tracing increment | Add arguments/assignments and other needed observations against synthetic report fixtures | One representative report path explained with supported links and explicit gaps |
-| Expansion toward 15 repositories | Durable investigations, selective traversal, coverage reporting, measured caching | A teammate can resume and verify the same investigation across recorded snapshots |
+| Prerequisite milestone | Snapshot range reads, search coverage/count semantics, Windows-safe execution, encoding and durable investigations | Late-file evidence is accessible, incomplete searches are visible, and evidence survives restart |
+| Report-tracing MVP | VB report relationships, structural XML artifact inspection, bounded declaration candidate index | One representative report's participating files and procedure references are supported by evidence, with ambiguous/unresolved relationships retained |
+| Expansion toward 15 repositories | Broader fixture coverage, selective traversal, measured caching and workload limits | A teammate can resume and verify the investigation across recorded snapshots with explicit coverage |
 
-These are proposed increments, not claims that the public upstream or current kit implements them.
+These are proposed increments, not claims that the upstream or current kit implements them. The MVP has several extractors but stays bounded to named report-tracing observations; it does not require a general-purpose semantic call graph.
+
+## Report relationships required in the MVP
+
+| Source construct | Observation returned | Claim boundary |
+|---|---|---|
+| `New rptMonthEnd()` | Object-creation type syntax, arguments, containing declaration and span | Type-name candidate; no resolved constructor/type claim |
+| `ReportDocument.Load("MonthEnd.rpt")` | Receiver/member syntax and positional/named argument expressions; exact literal value when present | A literal load argument, not proof the file exists or executes |
+| `ReportPath = "...rdlc"` | Assignment target, right-hand expression/literal and scope | Syntactic resource reference; resolve actual artifact candidates separately |
+| `cmd.CommandText = "usp_MonthEndSales"` | Member assignment, literal procedure candidate and receiver syntax | Record separately from `CommandType`; co-occurrence alone does not prove the same runtime command state |
+| `With cmd ... .CommandText = ...` | Nearest enclosing `With` receiver expression, nesting and assignment spans | Receiver syntax, not semantic identity or evaluated value |
+| `Handles btnPrint.Click` | Method's event-handler clause and source locations | Declared handler association; no proof of the UI execution path |
+| `Parameters.AddWithValue("@StartDate", value)` | Receiver/member, positional/named arguments, literal parameter name and value expression | No runtime value or proven procedure-parameter binding |
+
+Record expressions that cannot be reduced under supported deterministic rules as unresolved. Do not execute VB, evaluate arbitrary expressions, or guess concatenated/dynamic paths. Version any limited literal/constant extraction rules.
+
+Return typed relationship observations with provenance for each endpoint/expression. Preserve observed syntax separately from candidate resolution. Argument extraction is syntactic positional/named argument mapping, not binding arguments to a resolved method signature.
+
+## Report artifacts beyond VB.NET
+
+Add an artifact-specific service behind the same harness evidence boundary. It can use a separate XML parser; Roslyn does not need to parse XML report formats.
+
+| Artifact | MVP treatment |
+|---|---|
+| `.rdlc` / `.rdl` | Namespace-aware XML extraction of datasets, command text/type, report parameters and supported resource references; retain expression text when dynamic |
+| Typed `.xsd` datasets | Inspect supported TableAdapter command/procedure and parameter metadata; report unsupported schema variants |
+| `.vbproj` | Observe literal Compile/EmbeddedResource items, links and conditions. Do not execute MSBuild or treat unevaluated items/globs/imports as complete build membership |
+| `.config` / `.resx` | Extract supported report-path/resource/connection-name references structurally. Redact sensitive values; connection names do not identify a verified database deployment |
+| `.sql` | Locate candidate procedure definitions and collect direct excerpts. Declare supported dialect/schema/name rules; no SQL execution or invented definition |
+| Binary `.rpt` | Inventory/hash and referenced-path evidence first. Optional bounded string extraction is lexical-only, records extractor/version and byte offsets, and cannot establish report semantics or absence |
+
+XML extraction must be bounded and avoid external entity/DTD resolution or network/file fetches. Retain original source locations and namespace/schema context; do not reserialize XML and cite its new line numbers.
+
+For a procedure reference with no located definition, distinguish:
+- `not_found_in_searched_scope` after a complete supported search of that scope;
+- `unresolved_due_to_incomplete_coverage` when repositories/files were skipped, capped or failed;
+- `external_definition_confirmed` only when separate evidence establishes an external definition.
+
+Do not infer “not in any approved repository” from a capped search, and do not infer that a source definition matches the deployed database version.
+
+## Declaration candidates across files
+
+Add a bounded, paged per-repository declaration index keyed to source snapshot and parser configuration. Include namespaces, containing types/modules, partial modifiers, declaration kind/name, path and spans, including `*.Designer.vb`.
+
+Lookups return candidate declarations and an ambiguity count (exact only when the lookup scope is complete), plus scope and coverage metadata. Namespace/type-name matches across partial declarations are grouping candidates until project/semantic context establishes identity. Unqualified module calls produce candidate targets rather than resolved links. Do not merge duplicate names across repositories or projects.
+
+This index is in the report-tracing MVP; a fully resolved call graph remains deferred. Build incrementally/on demand under explicit limits and report incomplete indexing instead of silently scanning all 15 repositories.
 
 ## Component boundary
 
-The parser is a versioned .NET executable invoked by the Node server using an argument array with `shell: false`. A PowerShell launcher remains optional for personal/manual use; the server must not depend on personal shell profiles or a specific user's home directory.
+The parser is a versioned .NET executable invoked by the Node server using an argument array with `shell: false`. Expose repository-relative logical paths in evidence; strip staging paths and user-home paths from results and errors. A PowerShell launcher remains optional for personal/manual use; the server must not depend on personal shell profiles or a specific user's home directory.
 
 | Parser owns | Harness owns |
 |---|---|
@@ -63,7 +135,7 @@ Do not introduce a second MCP server for the MVP. Keep the parser independent of
 
 Proposed MCP tool name: `analyze_vb_source`. The name is not a currently available tool.
 
-Inputs: approved `repositoryAlias`, normalized `relativePath`, an operation enum (`outline`, `inspect`, `invocations`), optional declaration selection, and bounded pagination/limit fields. The server owns the pinned revision and effective parser configuration; callers do not supply arbitrary executable paths, root paths, or compiler arguments.
+Inputs: approved `repositoryAlias`, normalized `relativePath`, an operation enum (`outline`, `inspect`, `invocations`, `report-references`), optional declaration selection, and bounded pagination/limit fields. Add focused artifact-inspection and declaration-candidate lookup operations with their own schemas rather than overloading the VB parser with arbitrary file formats. The server owns the pinned revision and effective parser configuration; callers do not supply arbitrary executable paths, root paths, or compiler arguments.
 
 Internal parser protocol: one bounded JSON request on stdin, one JSON response on stdout, diagnostics on stderr. The request carries schema version, operation, logical source path, exact decoded source text, selection, effective parser options, and limits. The response carries schema version, parser/extractor versions, effective options, diagnostics, coverage/truncation, and structured observations with spans.
 
@@ -106,6 +178,9 @@ Add parsing caches only after measuring repeated work. Cache keys must include s
 
 ## Validation and acceptance
 
+Prerequisite regressions must cover a late match beyond 16 KiB, 601+ matches across multiple files, file-oriented pagination, unknown totals on early termination, a Windows path set exceeding the single-command budget, non-ASCII Windows-1252 literals, BOM Unicode input, and restart/reload reference validation. Do not mark the Windows case validated from Linux tests alone.
+
+
 Use synthetic fixtures only; private source is not required in upstream tests.
 
 MVP tests must demonstrate:
@@ -122,9 +197,9 @@ MVP tests must demonstrate:
 - Different repositories with identical paths preserve distinct evidence identity.
 - The reference validator accepts genuinely cataloged syntax evidence and rejects fabricated/stale references under its existing contract.
 
-For the report-tracing increment, create a small multi-repository fixture with an entry point, parameter construction, shared helper, configuration/query selection, and SQL artifact. Include a duplicate method name, a misleading comment, and an unresolved dynamic target. The expected explanation must preserve that unresolved target rather than invent a complete path.
+For the report-tracing MVP, create a multi-repository fixture containing `New rptX()`, literal `.rpt` and `.rdlc` references, an `.rdlc`, a typed `.xsd`, `.vbproj` item metadata, a `With cmd` block with `CommandText`/`CommandType`, `AddWithValue`, a `Handles` clause, a Designer partial class, and both present and absent procedure-definition candidates. Include duplicate names, misleading comments, nested `With` blocks, a dynamic report path, and an explicitly unsupported binary report. Verify the expected file/relationship set and ambiguity/coverage states. Do not invent a complete path when a target or procedure definition remains unresolved.
 
-Measure against the current lexical/excerpt baseline: supported findings, false relationship claims, unresolved links, tool calls, returned bytes, and elapsed time. Do not use explanation fluency as the acceptance metric. Test larger repository counts and practical corpus sizes before claiming 15-repository scalability.
+Measure against the corrected lexical/excerpt baseline (retain pre-fix measurements only as historical context): supported findings, false relationship claims, unresolved links, tool calls, returned bytes, and elapsed time. Do not use explanation fluency as the acceptance metric. Test larger repository counts and practical corpus sizes before claiming 15-repository scalability.
 
 ## Deferred work
 
@@ -133,14 +208,16 @@ Full solution loading, semantic binding, overload resolution, complete call grap
 ## Rollout
 
 1. Reconcile this proposal against the downstream fork and agree on contracts.
-2. Build/test the parser independently with synthetic sources.
-3. Add an optional adapter and MCP tool; preserve existing tools and artifact behavior.
-4. Run the synthetic report investigation and compare against baseline.
+2. Land and validate prerequisite harness fixes. Parser-only experiments may proceed independently; integration acceptance is gated on these fixes.
+3. Build/test the report-relevant parser extractors, XML artifact adapter and candidate index; add optional MCP tools while preserving existing contracts.
+4. Run the synthetic report investigation and compare against the corrected search/excerpt baseline.
 5. Pilot selected real reports locally; retain explicit coverage and unresolved links.
 6. Expand scope after evidence quality and measured performance pass review.
 
 ## References
 
+- ripgrep path-list limitation: https://github.com/BurntSushi/ripgrep/issues/3459
+- ripgrep encoding: https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md#file-encoding
 - Public baseline: https://github.com/jeffcaradona/modernization-evidence-harness/tree/baa4158bbc09b0d7143d1b006bc6b0607e3baa88
 - Architecture: https://github.com/jeffcaradona/modernization-evidence-harness/blob/baa4158bbc09b0d7143d1b006bc6b0607e3baa88/docs/architecture.md
 - Evidence contract: https://github.com/jeffcaradona/modernization-evidence-harness/blob/baa4158bbc09b0d7143d1b006bc6b0607e3baa88/docs/evidence-and-artifacts.md
